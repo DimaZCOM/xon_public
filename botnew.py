@@ -21,7 +21,7 @@ mycol = mydb["users"]
 bot = telebot.TeleBot(TOKEN)
 
 
-banned = ["508501966"]
+banned = ["508501966", "978005374"]
 
 
 @bot.message_handler(commands=["start"])
