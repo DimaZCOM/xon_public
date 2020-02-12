@@ -21,22 +21,26 @@ mycol = mydb["users"]
 bot = telebot.TeleBot(TOKEN)
 
 
+banned = [508501966]
+
+
 @bot.message_handler(commands=["start"])
 def start(message):
-    log(message)
-    txt = """
-    * Версия 2.0 *. Если вдруг есть идеи того, что вы хотите увидеть в боте, можете просто написать в личку боту или [мне](https://t.me/xon_usr)
-    * Функционал *: Сапер (/minesweeper)
+    if str(message.from_user.id) not in banned:
+        log(message)
+        txt = """
+        * Версия 2.0 *. Если вдруг есть идеи того, что вы хотите увидеть в боте, можете просто написать в личку боту или [мне](https://t.me/xon_usr)
+        * Функционал *: Сапер (/minesweeper)
 
-    Исходный код: [тутачки](https://github.com/xon-dev/xon_public)
-    """
-    if str(message.chat.id) != admin_id:
-        bot.reply_to(message, txt, parse_mode="markdown")
+        Исходный код: [тутачки](https://github.com/xon-dev/xon_public)
+        """
+        if str(message.chat.id) != admin_id:
+            bot.reply_to(message, txt, parse_mode="markdown")
 
 
 @bot.message_handler(commands=["minesweeper"])
 def size_menu(message):
-    if str(message.chat.id) != ban_id:
+    if str(message.from_user.id) not in banned:
         if str(message.chat.id) != admin_id:
             log(message)
         find = mycol.find_one({"chat": message.chat.id})
@@ -80,19 +84,20 @@ def size_menu(message):
 
 @bot.message_handler(content_types=["text"])
 def frwrd(message):
-    bot.forward_message(admin_id, message.chat.id, message.message_id)
+    if str(message.from_user.id) not in banned:
+        bot.forward_message(admin_id, message.chat.id, message.message_id)
 
 
 @bot.callback_query_handler(lambda query: query.data == "newgame")
 def new_game(call):
-    if str(call.message.chat.id) != ban_id:
+    if str(call.message.from_user.id) not in banned:
         mycol.delete_one({"chat": call.message.chat.id})
         size_menu(call.message)
 
 
 @bot.callback_query_handler(lambda query: query.data == "prevgame")
 def prev_game(call):
-    if str(call.message.chat.id) != ban_id:
+    if str(message.from_user.id) not in banned:
         find = mycol.find_one({"chat": call.message.chat.id})
         find["message"] = call.message.message_id
         mycol.update_one(
@@ -111,7 +116,7 @@ def prev_game(call):
 
 @bot.callback_query_handler(lambda query: "s" in query.data)
 def fieldbegin(call):
-    if str(call.message.chat.id) != ban_id:
+    if str(call.message.from_user.id) not in banned:
         # Takes size from callback
         size = int(call.data[1])
         field = utils.empty_field(size)
@@ -144,7 +149,7 @@ def fieldbegin(call):
 
 @bot.callback_query_handler(lambda query: "z" in query.data)
 def fieldgame(call):
-    if str(call.message.chat.id) != ban_id:
+    if str(call.message.from_user.id) not in banned:
         find = mycol.find_one({"chat": call.message.chat.id})
         if call.message.message_id != find["message"]:
             bot.edit_message_text(
