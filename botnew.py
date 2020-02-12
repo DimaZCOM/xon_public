@@ -90,14 +90,14 @@ def frwrd(message):
 
 @bot.callback_query_handler(lambda query: query.data == "newgame")
 def new_game(call):
-    if str(call.message.chat.id) not in banned:
+    if str(call.from_user.id) not in banned:
         mycol.delete_one({"chat": call.message.chat.id})
         size_menu(call.message)
 
 
 @bot.callback_query_handler(lambda query: query.data == "prevgame")
 def prev_game(call):
-    if str(call.message.chat.id) not in banned:
+    if str(call.from_user.id) not in banned:
         find = mycol.find_one({"chat": call.message.chat.id})
         find["message"] = call.message.message_id
         mycol.update_one(
@@ -116,7 +116,7 @@ def prev_game(call):
 
 @bot.callback_query_handler(lambda query: "s" in query.data)
 def fieldbegin(call):
-    if str(call.message.chat.id) not in banned:
+    if str(call.from_user.id) not in banned:
         # Takes size from callback
         size = int(call.data[1])
         field = utils.empty_field(size)
@@ -149,7 +149,7 @@ def fieldbegin(call):
 
 @bot.callback_query_handler(lambda query: "z" in query.data)
 def fieldgame(call):
-    if str(call.message.chat.id) not in banned:
+    if str(call.from_user.id) not in banned:
         find = mycol.find_one({"chat": call.message.chat.id})
         if call.message.message_id != find["message"]:
             bot.edit_message_text(
