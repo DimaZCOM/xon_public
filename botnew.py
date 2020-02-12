@@ -4,37 +4,25 @@ import os
 from pymongo import MongoClient
 import utils
 from utils import heroku_check, log
-import minesweeper
 import random
-import tic_tac_toe
 
 # configuring variables
 TOKEN = utils.TOKEN
 admin_id = utils.admin_id
 uri = utils.uri
 bot_id = utils.bot_id
+ban_id = utils.ban_id
 #
 #
 # Set client & db up
 myclient = MongoClient(uri)
 mydb = myclient["userdb"]
 mycol = mydb["users"]
-ulist = mydb["userlist"]
-pairs = mydb["pairs"]
 bot = telebot.TeleBot(TOKEN)
-
-
-def extract_arg(arg):
-    return arg.split()[1:]
 
 
 @bot.message_handler(commands=["start"])
 def start(message):
-    findlist = ulist.find_one({"id": message.from_user.id})
-    if str(findlist) == "None":
-        ulist.insert_one(
-            {"id": message.chat.id, "nickname": message.from_user.username}
-        )
     log(message)
     txt = """
     * Версия 2.0 *. Если вдруг есть идеи того, что вы хотите увидеть в боте, можете просто написать в личку боту или [мне](https://t.me/xon_usr)
@@ -48,264 +36,151 @@ def start(message):
 
 @bot.message_handler(commands=["minesweeper"])
 def size_menu(message):
-    findlist = ulist.find_one({"id": message.from_user.id})
-    if str(findlist) == "None":
-        ulist.insert_one(
-            {"id": message.chat.id, "nickname": message.from_user.username}
-        )
-    find = mycol.find_one({"chat": message.chat.id})
-    if str(message.chat.id) != admin_id:
-        log(message)
-    find = mycol.find_one({"chat": message.chat.id})
-    if str(find) == "None":
-        # Buttons w sizes. Return 's' + choice
-        choice = types.InlineKeyboardMarkup()
-        button1 = types.InlineKeyboardButton(text="4", callback_data="s4")
-        button2 = types.InlineKeyboardButton(text="5", callback_data="s5")
-        choice.row(button1, button2)
-        button3 = types.InlineKeyboardButton(text="6", callback_data="s6")
-        button4 = types.InlineKeyboardButton(text="7", callback_data="s7")
-        choice.row(button3, button4)
-        button5 = types.InlineKeyboardButton(text="8", callback_data="s8")
-        choice.row(button5)
-        if str(message.from_user.id) != bot_id:
-            bot.send_message(
-                message.chat.id, "Choose size:", reply_markup=choice
-            )
-        else:
-            bot.edit_message_text(
-                "Choose size:",
-                message.chat.id,
-                message.message_id,
-                reply_markup=choice,
-            )
-    else:
-        choice = types.InlineKeyboardMarkup()
-        button1 = types.InlineKeyboardButton(
-            text="Доиграть прошлую игру", callback_data="prevgame"
-        )
-        button2 = types.InlineKeyboardButton(
-            text="Начать новую игру", callback_data="newgame"
-        )
-        choice.row(button1, button2)
-        bot.send_message(
-            message.chat.id,
-            "Была найдена ваша предыдущая игра в этом чате. Вы можете начать новую или продолжить незавершенную",
-            reply_markup=choice,
-        )
-
-
-@bot.message_handler(commands=["tic"])
-def tic(message):
-    findlist = ulist.find_one({"id": message.from_user.id})
-    if str(findlist) == "None":
-        ulist.insert_one(
-            {"id": message.chat.id, "nickname": message.from_user.username}
-        )
-
-    findpair1 = pairs.find_one({"id": message.from_user.id})
-    if str(findpair1) == "None":
-        lopponent = extract_arg(message.text)
-        if len(lopponent) == 0:
-            bot.reply_to(
-                message,
-                "Пожалуйста, добавьте юзернейм друга после команды (без собачки)",
-            )
-        elif len(lopponent) > 1:
-            bot.reply_to(message, "Слишком много аргументов")
-        else:
-            opponent = lopponent[0]
-            if len(opponent) < 5 or len(opponent) > 32:
-                bot.reply_to(message, "Некорректный юзернейм")
-            elif opponent == message.from_user.username:
-                bot.reply_to(
-                    message, "Ты не можешь послать запрос самому себе)"
+    if str(message.chat.id) != ban_id:
+        if str(message.chat.id) != admin_id:
+            log(message)
+        find = mycol.find_one({"chat": message.chat.id})
+        if str(find) == "None":
+            # Buttons w sizes. Return 's' + choice
+            choice = types.InlineKeyboardMarkup()
+            button1 = types.InlineKeyboardButton(text="4", callback_data="s4")
+            button2 = types.InlineKeyboardButton(text="5", callback_data="s5")
+            choice.row(button1, button2)
+            button3 = types.InlineKeyboardButton(text="6", callback_data="s6")
+            button4 = types.InlineKeyboardButton(text="7", callback_data="s7")
+            choice.row(button3, button4)
+            button5 = types.InlineKeyboardButton(text="8", callback_data="s8")
+            choice.row(button5)
+            if str(message.from_user.id) != bot_id:
+                bot.send_message(
+                    message.chat.id, "Choose size:", reply_markup=choice
                 )
             else:
-                findop = ulist.find_one({"nickname": opponent})
-                if str(findop) == "None":
-                    bot.reply_to(
-                        message,
-                        "Друг должен сначала написать любое сообщение/команду боту",
-                    )
-                else:
-                    begin = types.InlineKeyboardMarkup()
-                    button = types.InlineKeyboardButton(
-                        text="Invite friend", callback_data="tic" + opponent
-                    )
-                    begin.row(button)
-                    bot.send_message(
-                        message.chat.id,
-                        "Противник найден. Нажмите на кнопку, чтобы послать приглашение",
-                        reply_markup=begin,
-                    )
-    else:
-        bot.reply_to(
-            message,
-            "Была найдена твоя прошлая игра. Что бы начать новую игру нужно 1) Удалить старую или 2) Доиграть с тем же оппонентом",
-        )
+                bot.edit_message_text(
+                    "Choose size:",
+                    message.chat.id,
+                    message.message_id,
+                    reply_markup=choice,
+                )
+        else:
+            choice = types.InlineKeyboardMarkup()
+            button1 = types.InlineKeyboardButton(
+                text="Доиграть прошлую игру", callback_data="prevgame"
+            )
+            button2 = types.InlineKeyboardButton(
+                text="Начать новую игру", callback_data="newgame"
+            )
+            choice.row(button1, button2)
+            bot.send_message(
+                message.chat.id,
+                "Была найдена ваша предыдущая игра в этом чате. Вы можете начать новую или продолжить незавершенную",
+                reply_markup=choice,
+            )
 
 
 @bot.message_handler(content_types=["text"])
 def frwrd(message):
-    findlist = ulist.find_one({"id": message.from_user.id})
-    if str(findlist) == "None":
-        ulist.insert_one(
-            {"id": message.chat.id, "nickname": message.from_user.username}
-        )
     bot.forward_message(admin_id, message.chat.id, message.message_id)
 
 
 @bot.callback_query_handler(lambda query: query.data == "newgame")
 def new_game(call):
-    mycol.delete_one({"chat": call.message.chat.id})
-    size_menu(call.message)
+    if str(call.message.chat.id) != ban_id:
+        mycol.delete_one({"chat": call.message.chat.id})
+        size_menu(call.message)
 
 
 @bot.callback_query_handler(lambda query: query.data == "prevgame")
 def prev_game(call):
-    find = mycol.find_one({"chat": call.message.chat.id})
-    find["message"] = call.message.message_id
-    mycol.update_one(
-        {"chat": call.message.chat.id},
-        {"$set": {"message": call.message.message_id}},
-    )
-    field = find["field"]
-    size = find["size"]
-    keyboard = minesweeper.board(size, field)
-    cid = call.message.chat.id
-    mid = call.message.message_id
-    bot.edit_message_text(
-        chat_id=cid, message_id=mid, text="Field:", reply_markup=keyboard,
-    )
-
-
-@bot.callback_query_handler(lambda query: "tic" in query.data)
-def tictac(call):
-    player = str(call.message.chat.username)
-    opponent = call.data[3:]
-    findus = ulist.find_one({"nickname": player})
-    findop = ulist.find_one({"nickname": opponent})
-    usrid = int(findus["id"])
-    oppid = int(findop["id"])
-    begin = types.InlineKeyboardMarkup()
-    button1 = types.InlineKeyboardButton(
-        text="Согласиться", callback_data=str(oppid) + "+" + str(usrid)
-    )
-    button2 = types.InlineKeyboardButton(
-        text="Отказаться", callback_data=str(oppid) + "-" + str(usrid)
-    )
-    begin.row(button1, button2)
-    bot.send_message(
-        oppid,
-        f"{player} пригласил(а) тебя поиграть в крестики-нолики",
-        reply_markup=begin,
-    )
-    bot.send_message(usrid, f"Приглашение {opponent} доставлено. Жди")
-
-
-@bot.callback_query_handler(lambda query: "-" in query.data)
-def endtic(call):
-    data = call.data
-    users = data.split("-")
-    oppid = int(users[0])
-    findop = ulist.find_one({"id": oppid})
-    opponent = findop["nickname"]
-    usrid = int(users[1])
-    bot.send_message(usrid, f"{opponent} отклонил приглашение")
-
-
-@bot.callback_query_handler(lambda query: "+" in query.data)
-def ticready(call):
-    data = call.data
-    users = data.split("+")
-    oppid = int(users[0])
-    usrid = int(users[1])
-    tic_tac_toe.begintic(oppid, usrid)
+    if str(call.message.chat.id) != ban_id:
+        find = mycol.find_one({"chat": call.message.chat.id})
+        find["message"] = call.message.message_id
+        mycol.update_one(
+            {"chat": call.message.chat.id},
+            {"$set": {"message": call.message.message_id}},
+        )
+        field = find["field"]
+        size = find["size"]
+        keyboard = utils.board(size, field)
+        cid = call.message.chat.id
+        mid = call.message.message_id
+        bot.edit_message_text(
+            chat_id=cid, message_id=mid, text="Field:", reply_markup=keyboard,
+        )
 
 
 @bot.callback_query_handler(lambda query: "s" in query.data)
 def fieldbegin(call):
-    # Takes size from callback
-    size = int(call.data[1])
-    field = minesweeper.empty_field(size)
-    minbomb = int(size * size / 6)
-    maxbomb = int(size * size / 4)
-    # random mines from +-normal range
-    mines = random.randint(minbomb, maxbomb)
-    # generating field w mines
-    minefield = random.sample(field, mines)
-    for i in range(len(field)):
-        for j in range(len(minefield)):
-            if field[i] == minefield[j]:
-                field[i]["is_mine"] = 1
-    c = 0
-    for i in range(size):
-        for j in range(size):
-            field[c]["count_mines"] = minesweeper.minec(field, size, i, j)
-            c += 1
-    keyboard = minesweeper.board(size, field)
-    cid = call.message.chat.id
-    mid = call.message.message_id
-    bot.edit_message_text(
-        chat_id=cid, message_id=mid, text="Field:", reply_markup=keyboard,
-    )
-    find = mycol.find_one({"chat": call.message.chat.id})
-    if str(find) == "None":
-        user = {"message": mid, "chat": cid, "size": size, "field": field}
-        mycol.insert_one(user)
+    if str(call.message.chat.id) != ban_id:
+        # Takes size from callback
+        size = int(call.data[1])
+        field = utils.empty_field(size)
+        minbomb = int(size * size / 6)
+        maxbomb = int(size * size / 4)
+        # random mines from +-normal range
+        mines = random.randint(minbomb, maxbomb)
+        # generating field w mines
+        minefield = random.sample(field, mines)
+        for i in range(len(field)):
+            for j in range(len(minefield)):
+                if field[i] == minefield[j]:
+                    field[i]["is_mine"] = 1
+        c = 0
+        for i in range(size):
+            for j in range(size):
+                field[c]["count_mines"] = utils.minec(field, size, i, j)
+                c += 1
+        keyboard = utils.board(size, field)
+        cid = call.message.chat.id
+        mid = call.message.message_id
+        bot.edit_message_text(
+            chat_id=cid, message_id=mid, text="Field:", reply_markup=keyboard,
+        )
+        find = mycol.find_one({"chat": call.message.chat.id})
+        if str(find) == "None":
+            user = {"message": mid, "chat": cid, "size": size, "field": field}
+            mycol.insert_one(user)
 
 
 @bot.callback_query_handler(lambda query: "z" in query.data)
 def fieldgame(call):
-    find = mycol.find_one({"chat": call.message.chat.id})
-    if str(call.message.message_id) != str(find["message"]):
-        bot.edit_message_text(
-            "Use last message from chat or run /minesweeper to play",
-            call.message.chat.id,
-            call.message.message_id,
-        )
-    else:
-        size = int(call.data[1])
-        x = int(call.data[2])
-        y = int(call.data[3])
-        if str(find) != "None":
-            field = find["field"]
-            field[x * size + y]["is_opened"] = 1
-            if (
-                field[x * size + y]["is_mine"] == 1
-                and field[x * size + y]["is_opened"] == 1
-            ):
-                mycol.delete_one({"chat": call.message.chat.id})
-                keyboard = minesweeper.endboard(size, field)
-                bot.answer_callback_query(
-                    callback_query_id=call.id, text="You lost", show_alert=1
-                )
-                button = types.InlineKeyboardButton(
-                    text="Начать новую игру", callback_data="newgame"
-                )
-                keyboard.row(button)
-                cid = call.message.chat.id
-                mid = call.message.message_id
-                bot.edit_message_text(
-                    chat_id=cid,
-                    message_id=mid,
-                    text="Field:",
-                    reply_markup=keyboard,
-                )
-            else:
-                nopened = 0
-                minecounter = 0
-                for i in range(len(field)):
-                    if field[i]["is_opened"] == 0:
-                        nopened += 1
-                    if field[i]["is_mine"] == 1:
-                        minecounter += 1
-                if nopened == minecounter:
-                    minesweeper.winreply(call, size, field)
+    if str(call.message.chat.id) != ban_id:
+        find = mycol.find_one({"chat": call.message.chat.id})
+        if call.message.message_id != find["message"]:
+            bot.edit_message_text(
+                "Use last message from chat or run /minesweeper to play",
+                call.message.chat.id,
+                call.message.message_id,
+            )
+        else:
+            size = int(call.data[1])
+            x = int(call.data[2])
+            y = int(call.data[3])
+            if str(find) != "None":
+                field = find["field"]
+                field[x * size + y]["is_opened"] = 1
+                if (
+                    field[x * size + y]["is_mine"] == 1
+                    and field[x * size + y]["is_opened"] == 1
+                ):
                     mycol.delete_one({"chat": call.message.chat.id})
+                    keyboard = utils.endboard(size, field)
+                    bot.answer_callback_query(
+                        callback_query_id=call.id, text="You lost", show_alert=1
+                    )
+                    button = types.InlineKeyboardButton(
+                        text="Начать новую игру", callback_data="newgame"
+                    )
+                    keyboard.row(button)
+                    cid = call.message.chat.id
+                    mid = call.message.message_id
+                    bot.edit_message_text(
+                        chat_id=cid,
+                        message_id=mid,
+                        text="Field:",
+                        reply_markup=keyboard,
+                    )
                 else:
-                    minesweeper.opengame(field, size, x, y)
                     nopened = 0
                     minecounter = 0
                     for i in range(len(field)):
@@ -314,27 +189,41 @@ def fieldgame(call):
                         if field[i]["is_mine"] == 1:
                             minecounter += 1
                     if nopened == minecounter:
-                        minesweeper.winreply(call, size, field)
+                        utils.winreply(call, size, field)
                         mycol.delete_one({"chat": call.message.chat.id})
                     else:
-                        keyboard = minesweeper.board(size, field)
-                        cid = call.message.chat.id
-                        mid = call.message.message_id
-                        bot.edit_message_text(
-                            chat_id=cid,
-                            message_id=mid,
-                            text="Field:",
-                            reply_markup=keyboard,
-                        )
-                        find = mycol.find_one({"chat": call.message.chat.id})
-                        mycol.update_one(
-                            {"chat": call.message.chat.id},
-                            {"$set": {"field": field}},
-                        )
-        else:
-            bot.edit_message_text(
-                "ERROR", call.message.chat.id, call.message.message_id
-            )
+                        utils.opengame(field, size, x, y)
+                        nopened = 0
+                        minecounter = 0
+                        for i in range(len(field)):
+                            if field[i]["is_opened"] == 0:
+                                nopened += 1
+                            if field[i]["is_mine"] == 1:
+                                minecounter += 1
+                        if nopened == minecounter:
+                            utils.winreply(call, size, field)
+                            mycol.delete_one({"chat": call.message.chat.id})
+                        else:
+                            keyboard = utils.board(size, field)
+                            cid = call.message.chat.id
+                            mid = call.message.message_id
+                            bot.edit_message_text(
+                                chat_id=cid,
+                                message_id=mid,
+                                text="Field:",
+                                reply_markup=keyboard,
+                            )
+                            find = mycol.find_one(
+                                {"chat": call.message.chat.id}
+                            )
+                            mycol.update_one(
+                                {"chat": call.message.chat.id},
+                                {"$set": {"field": field}},
+                            )
+            else:
+                bot.edit_message_text(
+                    "ERROR", call.message.chat.id, call.message.message_id
+                )
 
 
 @bot.callback_query_handler(lambda query: query.data == "OK")
